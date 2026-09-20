@@ -14,3 +14,6 @@ salesforce/_org_snapshot2/
 __pycache__/
 *.pyc
 node_modules/
+
+# Cowork からのダウンロード置き場
+Claude outputs/
