@@ -111,7 +111,7 @@ try:
         MODEL_NAME,
         version,
         endpoint_name=ENDPOINT_NAME,
-        scale_to_zero_enabled=True,
+        scale_to_zero=True,
     )
     print("[OK] agents.deploy を受理しました")
 except Exception:
@@ -129,24 +129,34 @@ print("=" * 72)
 print(f"STEP 4  READY 待ち（最大 {WAIT_MINUTES} 分）")
 print("=" * 72)
 
+def endpoint_state(ep):
+    """列挙体の値だけを取り出す。str() だと NOT_READY に READY が含まれて誤判定する。"""
+    ready = ep.state.ready.value if ep.state.ready else ""
+    update = ep.state.config_update.value if ep.state.config_update else ""
+    return ready, update
+
+
 began = time.time()
 last = None
 ep = None
+ready = ""
 
 while time.time() - began < WAIT_MINUTES * 60:
     ep = w.serving_endpoints.get(ENDPOINT_NAME)
-    key = (str(ep.state.ready), str(ep.state.config_update))
-    if key != last:
-        print(f"  [{time.time() - began:6.0f}s] ready={key[0]}  config_update={key[1]}")
-        last = key
-    if "READY" in key[0] or "FAILED" in key[1]:
+    ready, update = endpoint_state(ep)
+    if (ready, update) != last:
+        print(f"  [{time.time() - began:6.0f}s] ready={ready}  config_update={update}")
+        last = (ready, update)
+    if ready == "READY":
+        break
+    if update in ("UPDATE_FAILED", "UPDATE_CANCELED"):
         break
     time.sleep(15)
 
 print()
-print("最終状態:", ep.state if ep else None)
+print(f"最終状態: ready={ready}  config_update={last[1] if last else ''}")
 
-if ep is None or "READY" not in str(ep.state.ready):
+if ready != "READY":
     for cfg in (ep.pending_config, ep.config) if ep else []:
         if cfg:
             for se in (cfg.served_entities or []):
@@ -163,12 +173,21 @@ print("=" * 72)
 print("STEP 5  疎通確認")
 print("=" * 72)
 
-began = time.time()
-out = w.serving_endpoints.query(
-    name=ENDPOINT_NAME,
-    messages=[{"role": "user", "content": SMOKE_QUESTION}],
-)
-print(f"応答時間: {time.time() - began:.1f} 秒")
+# Salesforce がやるのと同じ生の HTTP で叩く。
+# w.serving_endpoints.query() は dict を受け付けない（as_dict を呼ぶため）。
+path = f"/serving-endpoints/{ENDPOINT_NAME}/invocations"
+body = {"messages": [{"role": "user", "content": SMOKE_QUESTION}]}
+
+out = None
+for i in (1, 2):
+    began = time.time()
+    try:
+        out = w.api_client.do("POST", path, body=body)
+        print(f"{i}回目: {time.time() - began:.1f} 秒")
+    except Exception as e:
+        print(f"{i}回目: {time.time() - began:.1f} 秒 で失敗 -> {e}")
+
+print("※ 2回目がウォーム状態の実測値。Apex の callout 上限は 120 秒。")
 print(out)
 
 print()

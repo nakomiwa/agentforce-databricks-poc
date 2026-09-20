@@ -156,18 +156,17 @@ state = None
 
 while time.time() - began < WAIT_MINUTES * 60:
     ep = w.serving_endpoints.get(ENDPOINT_NAME)
-    st = ep.state
-    ready = str(getattr(st, "ready", None))
-    update = str(getattr(st, "config_update", None))
-    now = f"{ready} / {update}"
-    if now != last:
+    # 列挙体の値だけを見る。str() だと NOT_READY に READY が含まれて誤判定する。
+    ready = ep.state.ready.value if ep.state.ready else ""
+    update = ep.state.config_update.value if ep.state.config_update else ""
+    if (ready, update) != last:
         print(f"  [{time.time() - began:6.0f}s] ready={ready}  config_update={update}")
-        last = now
+        last = (ready, update)
 
-    if "READY" in ready:
+    if ready == "READY":
         state = "READY"
         break
-    if "FAILED" in update:
+    if update in ("UPDATE_FAILED", "UPDATE_CANCELED"):
         state = "FAILED"
         break
     time.sleep(15)
