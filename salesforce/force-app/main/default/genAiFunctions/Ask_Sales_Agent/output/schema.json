@@ -1,0 +1,33 @@
+{
+    "unevaluatedProperties": false,
+    "properties": {
+        "answer": {
+            "title": "answer",
+            "description": "エージェントからの日本語回答",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        },
+        "success": {
+            "title": "success",
+            "description": "取得に成功したか",
+            "lightning:type": "lightning__booleanType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        },
+        "error_message": {
+            "title": "error_message",
+            "description": "失敗時のメッセージ",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        }
+    },
+    "lightning:type": "lightning__objectType"
+}

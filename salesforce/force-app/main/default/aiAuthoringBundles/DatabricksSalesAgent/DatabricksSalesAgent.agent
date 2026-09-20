@@ -1,0 +1,169 @@
+# =============================================================================
+# DatabricksSalesAgent
+# Databricks の Unity Catalog に登録した 3 つの API を呼び分けるエージェント
+#   ① get_sales_summary    : JSON を受け取り、自作 LWC（カード＋表）で表示
+#   ② get_sales_report_html: HTML を受け取り、自作 LWC（リッチテキスト）で表示
+#   ③ ask_databricks_agent : Databricks 側エージェントの日本語回答をそのまま返す
+# =============================================================================
+
+config:
+   developer_name: "DatabricksSalesAgent"
+   agent_label: "Databricks 営業エージェント"
+   agent_type: "AgentforceEmployeeAgent"
+   description: "Databricks の営業データを参照して、LWC・HTML・自然文の3形式で回答するエージェント"
+
+system:
+   messages:
+      welcome: "こんにちは。Databricks の営業データについてお答えします。「関東の第3四半期をLWCで見せて」「HTMLレポートで出して」「受注率が高い地域は？」のように話しかけてください。"
+      error: "Databricks との通信でエラーが発生しました。しばらくしてからもう一度お試しください。"
+   instructions: "あなたは日本企業の営業データ分析アシスタントです。回答は必ず日本語で行ってください。英語で質問された場合も日本語で回答します。専門用語は避け、簡潔で丁寧な敬体（です・ます調）を使ってください。アクションが画面表示用の結果を返した場合は、その内容を文章で繰り返さず、短い一言を添えるだけにしてください。"
+
+variables:
+   last_region: mutable string = "全社"
+      description: "直近に利用者が指定した地域。指定がなければ 全社。"
+   last_period: mutable string = "全期間"
+      description: "直近に利用者が指定した四半期。指定がなければ 全期間。"
+
+start_agent agent_router:
+   description: "利用者を営業データ担当のサブエージェントへ振り分ける"
+
+   reasoning:
+      instructions:|
+         Select the tool that best matches the user's message and conversation history. If it's unclear, make your best guess.
+      actions:
+         begin_sales: @utils.transition to @subagent.sales_insight
+            description: "営業データ・売上・案件・レポートに関する要求を受けたら遷移する"
+
+subagent sales_insight:
+   description: "Databricks の営業データを 3 つの形式（LWC / HTML / 自然文）で提供する"
+
+   reasoning:
+      instructions:->
+         | 必ず日本語で回答してください。
+
+         | 地域は 関東・関西・中部・九州・東北・北海道 または 全社 のいずれかです。
+           四半期は 2026-Q1・2026-Q2・2026-Q3・2026-Q4 または 全期間 のいずれかです。
+           利用者が地域や期間を明示していない場合は、直前の値
+           {!@variables.last_region} と {!@variables.last_period} を使い、
+           それも無ければ 全社 / 全期間 として扱ってください。聞き返しは最小限にします。
+
+         | 「LWC」「表」「一覧」「サマリ」「数字で」と言われたら {!@actions.get_sales_summary} を呼びます。
+           「HTML」「レポート」「帳票」「資料」と言われたら {!@actions.get_sales_report_html} を呼びます。
+           「なぜ」「分析して」「比較して」「考察」など考えを求められたら {!@actions.ask_databricks_agent} を呼びます。
+
+         | ①②のアクションは画面に表示用の部品を返します。
+           その場合は結果を文章で読み上げず、「表示しました。」程度の短い一言だけを返してください。
+           ③のアクションは回答テキストを返すので、その内容をそのまま日本語で伝えてください。
+
+         | アクションが success = false を返した場合は、error_message の内容を日本語でそのまま伝え、
+           もう一度試すよう案内してください。推測でデータを作ってはいけません。
+
+      actions:
+         get_sales_summary: @actions.get_sales_summary
+            with region = ...
+            with period = ...
+            set @variables.last_region = @inputs.region
+            set @variables.last_period = @inputs.period
+
+         get_sales_report_html: @actions.get_sales_report_html
+            with region = ...
+            with period = ...
+            set @variables.last_region = @inputs.region
+            set @variables.last_period = @inputs.period
+
+         ask_databricks_agent: @actions.ask_databricks_agent
+            with question = ...
+
+   actions:
+      # ---------- ① JSON -> LWC ----------
+      get_sales_summary:
+         description: "Databricks から営業サマリを取得し、専用の画面部品で表示する"
+         inputs:
+            region: string
+               description: "対象地域。関東/関西/中部/九州/東北/北海道 のいずれか、または 全社"
+               label: "region"
+               is_required: True
+            period: string
+               description: "対象四半期。2026-Q1〜2026-Q4 のいずれか、または 全期間"
+               label: "period"
+               is_required: True
+         outputs:
+            summary: object
+               description: "営業サマリ。画面部品として表示される"
+               label: "summary"
+               complex_data_type_name: "c__salesSummaryV2"
+               filter_from_agent: False
+               is_displayable: True
+            success: boolean
+               description: "取得に成功したか"
+               label: "success"
+               is_displayable: False
+            error_message: string
+               description: "失敗時のメッセージ"
+               label: "error_message"
+               is_displayable: False
+         target: "apex://DatabricksSalesService"
+         label: "営業サマリ取得"
+         require_user_confirmation: False
+         include_in_progress_indicator: True
+         progress_indicator_message: "Databricks から営業サマリを取得しています..."
+         source: "Get_Sales_Summary_V2"
+
+      # ---------- ② HTML -> LWC ----------
+      get_sales_report_html:
+         description: "Databricks から営業レポートを HTML で取得し、画面に描画する"
+         inputs:
+            region: string
+               description: "対象地域。関東/関西/中部/九州/東北/北海道 のいずれか、または 全社"
+               label: "region"
+               is_required: True
+            period: string
+               description: "対象四半期。2026-Q1〜2026-Q4 のいずれか、または 全期間"
+               label: "period"
+               is_required: True
+         outputs:
+            report: object
+               description: "HTML レポート。画面部品として表示される"
+               label: "report"
+               complex_data_type_name: "c__salesReportHtml"
+               filter_from_agent: False
+               is_displayable: True
+            success: boolean
+               label: "success"
+               is_displayable: False
+            error_message: string
+               label: "error_message"
+               is_displayable: False
+         target: "apex://DatabricksReportService"
+         label: "営業レポート取得(HTML)"
+         require_user_confirmation: False
+         include_in_progress_indicator: True
+         progress_indicator_message: "Databricks でレポートを生成しています..."
+         source: "Get_Sales_Report_Html"
+
+      # ---------- ③ カスタムエージェント ----------
+      ask_databricks_agent:
+         description: "Databricks 側の営業分析エージェントに質問し、日本語の回答を得る"
+         inputs:
+            question: string
+               description: "営業データに関する自然文の質問。日本語でそのまま渡す。"
+               label: "question"
+               is_required: True
+         outputs:
+            answer: string
+               description: "エージェントからの日本語回答"
+               label: "answer"
+               filter_from_agent: False
+               is_displayable: False
+            success: boolean
+               label: "success"
+               is_displayable: False
+            error_message: string
+               label: "error_message"
+               is_displayable: False
+         target: "apex://DatabricksAgentService"
+         label: "Databricks エージェントに質問"
+         require_user_confirmation: False
+         include_in_progress_indicator: True
+         progress_indicator_message: "Databricks のエージェントが分析しています..."
+         source: "Ask_Sales_Agent"

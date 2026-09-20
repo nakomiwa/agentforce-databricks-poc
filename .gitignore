@@ -1,0 +1,16 @@
+# ローカル作業ファイル（環境依存・再生成可能）
+deploy.log
+deploy.json
+retrieve.json
+_excluded_metadata/
+
+# sf CLI のローカル状態・組織スナップショット
+salesforce/.sf/
+salesforce/.sfdx/
+salesforce/_org_snapshot/
+salesforce/_org_snapshot2/
+
+# Python / Node
+__pycache__/
+*.pyc
+node_modules/

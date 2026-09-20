@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Databricks 側の営業分析エージェントに質問し、日本語の回答を得る</description>
+    <developerName>Ask_Sales_Agent</developerName>
+    <invocationTarget>DatabricksAgentService</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>Ask_Sales_Agent</localDeveloperName>
+    <masterLabel>Databricks エージェントに質問</masterLabel>
+    <progressIndicatorMessage>Databricks のエージェントが分析しています...</progressIndicatorMessage>
+</GenAiFunction>

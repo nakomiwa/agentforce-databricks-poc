@@ -1,0 +1,69 @@
+<template>
+    <lightning-card title={title} icon-name="standard:opportunity">
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <p class="slds-text-body_small slds-text-color_weak slds-var-m-bottom_x-small">
+                {scopeText}
+            </p>
+
+            <!-- KPI: チャットパネルは幅が狭いため常に2列 -->
+            <div class="slds-grid slds-wrap slds-gutters_xx-small slds-var-m-bottom_small">
+                <div class="slds-col slds-size_1-of-2 slds-var-m-bottom_xx-small">
+                    <div class="slds-box slds-box_xx-small slds-theme_shade">
+                        <p class="slds-text-title_caps slds-text-color_weak">合計金額</p>
+                        <p class="slds-text-body_regular">{totalAmountText}</p>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-var-m-bottom_xx-small">
+                    <div class="slds-box slds-box_xx-small slds-theme_shade">
+                        <p class="slds-text-title_caps slds-text-color_weak">受注率</p>
+                        <p class="slds-text-body_regular">{winRateText}</p>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-var-m-bottom_xx-small">
+                    <div class="slds-box slds-box_xx-small slds-theme_shade">
+                        <p class="slds-text-title_caps slds-text-color_weak">案件数</p>
+                        <p class="slds-text-body_regular">{dealCountText}</p>
+                    </div>
+                </div>
+                <div class="slds-col slds-size_1-of-2 slds-var-m-bottom_xx-small">
+                    <div class="slds-box slds-box_xx-small slds-theme_shade">
+                        <p class="slds-text-title_caps slds-text-color_weak">受注件数</p>
+                        <p class="slds-text-body_regular">{wonCountText}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 明細: 1案件を2行に積んで狭幅でも全項目を見せる -->
+            <ul class="slds-has-dividers_bottom-space">
+                <template for:each={rows} for:item="row">
+                    <li key={row.key} class="slds-item slds-var-p-vertical_xx-small">
+                        <div class="slds-grid slds-grid_align-spread">
+                            <div class="slds-col slds-truncate" title={row.opportunityName}>
+                                <span class="slds-text-color_weak">{row.rank}.</span>
+                                {row.opportunityName}
+                            </div>
+                            <div class="slds-col slds-no-flex slds-var-m-left_x-small">
+                                <strong>{row.amountText}</strong>
+                            </div>
+                        </div>
+                        <div
+                            class="slds-grid slds-grid_align-spread slds-text-body_small slds-text-color_weak"
+                        >
+                            <div class="slds-col slds-truncate" title={row.accountName}>
+                                {row.accountName}　/　{row.ownerName}
+                            </div>
+                            <div class="slds-col slds-no-flex slds-var-m-left_x-small">
+                                <span class={row.stageClass}>{row.stage}</span>
+                                {row.closeDate}
+                            </div>
+                        </div>
+                    </li>
+                </template>
+            </ul>
+
+            <p class="slds-text-body_small slds-text-color_weak slds-var-m-top_x-small">
+                {footNote}
+            </p>
+        </div>
+    </lightning-card>
+</template>

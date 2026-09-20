@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Databricks から営業サマリを取得し、専用の画面部品で表示する</description>
+    <developerName>Get_Sales_Summary_V2</developerName>
+    <invocationTarget>DatabricksSalesService</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>Get_Sales_Summary_V2</localDeveloperName>
+    <masterLabel>営業サマリ取得</masterLabel>
+    <progressIndicatorMessage>Databricks から営業サマリを取得しています...</progressIndicatorMessage>
+</GenAiFunction>

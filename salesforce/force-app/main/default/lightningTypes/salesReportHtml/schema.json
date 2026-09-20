@@ -1,0 +1,5 @@
+{
+    "title": "Sales Report HTML",
+    "description": "Databricks から取得した HTML 営業レポート",
+    "lightning:type": "@apexClassType/c__DatabricksReportService$SalesReport"
+}

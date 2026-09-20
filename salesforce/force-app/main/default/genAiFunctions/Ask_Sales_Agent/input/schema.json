@@ -1,0 +1,13 @@
+{
+    "required": ["question"],
+    "unevaluatedProperties": false,
+    "properties": {
+        "question": {
+            "title": "question",
+            "description": "営業データに関する自然文の質問。日本語でそのまま渡す。",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false
+        }
+    },
+    "lightning:type": "lightning__objectType"
+}
