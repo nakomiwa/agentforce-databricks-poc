@@ -17,3 +17,8 @@ node_modules/
 
 # Cowork からのダウンロード置き場
 Claude outputs/
+
+# Databricks CLI / Asset Bundles
+databricks_deploy.log
+databricks/.databricks/
+.databricks/

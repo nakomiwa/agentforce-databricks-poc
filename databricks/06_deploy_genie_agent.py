@@ -1,3 +1,4 @@
+# Databricks notebook source
 # =============================================================================
 # 06_deploy_genie_agent.py
 #
@@ -7,9 +8,11 @@
 # 【実行】Databricks のノートブック（サーバーレス）でこのファイルをそのまま実行
 #         または Git フォルダに置いてノートブックから実行
 #
-# 【事前に一度だけ】別セルで下記を実行してカーネルを再起動すること
-#     %pip install -U -qqq mlflow databricks-agents databricks-sdk
-#     dbutils.library.restartPython()
+# 【依存パッケージ】databricks.yml の environments で宣言済み
+#     bundle 経由で実行する場合は %pip は不要。
+#     ノートブックに手で貼って実行する場合のみ、別セルで次を実行すること:
+#       %pip install -U -qqq mlflow databricks-agents databricks-sdk
+#       dbutils.library.restartPython()
 # =============================================================================
 
 import os

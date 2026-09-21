@@ -212,3 +212,47 @@ Agent Builder のプレビューで **「シミュレーターをリセット」
   秘密情報ではありませんが、自分の環境の値に置き換えてください。
 - PAT はコードにもメタデータにも含まれません。設定画面から入力します。
 - ダミーデータは自動生成で、実在の企業・人物とは関係ありません。
+
+## Databricks 側のデプロイ（Databricks CLI / Asset Bundles）
+
+Salesforce 側の `deploy.bat` と同じ運用で、Databricks 側も 1 操作でデプロイできる。
+ノートブックにコードを貼り付ける必要はない。
+
+### 事前準備（1 回だけ）
+
+```powershell
+winget install Databricks.DatabricksCLI
+databricks auth login --host https://dbc-c4f38c73-28bc.cloud.databricks.com --profile sfdc
+```
+
+2 行目でブラウザが開くのでサインインする。以降トークンは自動更新される。
+
+### 使い方
+
+`databricks_deploy.bat` をダブルクリックする。既定で ③ の Genie エージェントを
+デプロイするジョブが走り、結果が `databricks_deploy.log` に出る。
+
+ジョブを指定する場合:
+
+```powershell
+.\databricks_deploy.bat register_uc_functions
+```
+
+### 用意してあるジョブ
+
+| ジョブ名 | 内容 |
+|---|---|
+| `deploy_genie_agent` | ③ Genie ラッパーを UC に登録して Model Serving へデプロイ（既定） |
+| `register_uc_functions` | ①②③ が使う UC 関数を登録し直す |
+| `setup_unity_catalog` | ダミーデータを作り直す（通常は流さない） |
+| `smoke_test` | 疎通確認 |
+
+### 仕組み
+
+`databricks/databricks.yml` がバンドル定義。`bundle deploy` が `databricks/` 配下を
+ワークスペースへ同期し、`bundle run` がジョブを実行して出力を返す。
+
+スクリプト先頭の `# Databricks notebook source` は、`.py` をノートブックとして
+扱わせるためのマジックヘッダー。ただの行コメントなので、ローカルでの
+`python xxx.py` 実行には影響しない。`genie_agent.py` はモジュールとして
+import されるため、このヘッダーを付けていない。

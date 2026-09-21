@@ -1,0 +1,99 @@
+# =============================================================================
+# Databricks Asset Bundle
+#
+# 目的: Databricks 側のデプロイを「ファイルを貼らずに」1 コマンドで行う。
+#       Salesforce 側の deploy.bat と同じ運用にする。
+#
+# 使い方（Windows）:
+#   C:\dev\agentforce-databricks-poc\databricks_deploy.bat をダブルクリック
+#   → 既定で deploy_genie_agent ジョブが走る
+#   引数でジョブを指定することもできる:
+#     databricks_deploy.bat register_uc_functions
+#
+# 事前準備（1 回だけ）:
+#   1. Databricks CLI をインストール
+#        winget install Databricks.DatabricksCLI
+#   2. 認証プロファイルを作成（ブラウザが開いてサインイン）
+#        databricks auth login --host https://dbc-c4f38c73-28bc.cloud.databricks.com --profile sfdc
+#
+# 手動で叩く場合:
+#   cd databricks
+#   databricks bundle deploy -p sfdc
+#   databricks bundle run deploy_genie_agent -p sfdc
+# =============================================================================
+
+bundle:
+  name: agentforce-databricks-poc
+
+variables:
+  genie_space_id:
+    description: "③ が使う Genie スペースの ID"
+    default: "01f1b4f5cca01e879e5ae04b2823e9c9"
+  warehouse_id:
+    description: "SQL ウェアハウス ID"
+    default: "e97a8ff7fddc4165"
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-c4f38c73-28bc.cloud.databricks.com
+
+resources:
+  jobs:
+    # ---- ① データ準備（通常は流さない） ----------------------------------
+    setup_unity_catalog:
+      name: "sfdc-poc 01 Unity Catalog セットアップ"
+      tasks:
+        - task_key: main
+          notebook_task:
+            notebook_path: ./01_setup_unity_catalog.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
+
+    # ---- ② UC 関数の登録 --------------------------------------------------
+    register_uc_functions:
+      name: "sfdc-poc 02 UC 関数の登録"
+      tasks:
+        - task_key: main
+          notebook_task:
+            notebook_path: ./02_register_uc_functions.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
+
+    # ---- ③ Genie エージェントのデプロイ（既定のジョブ） --------------------
+    deploy_genie_agent:
+      name: "sfdc-poc 06 Genie エージェントのデプロイ"
+      tasks:
+        - task_key: main
+          notebook_task:
+            notebook_path: ./06_deploy_genie_agent.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
+            dependencies:
+              - mlflow
+              - databricks-agents
+              - databricks-sdk
+
+    # ---- 疎通確認 ---------------------------------------------------------
+    smoke_test:
+      name: "sfdc-poc 03 疎通確認"
+      tasks:
+        - task_key: main
+          notebook_task:
+            notebook_path: ./03_smoke_test.py
+          environment_key: default
+      environments:
+        - environment_key: default
+          spec:
+            client: "3"
