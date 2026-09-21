@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<GenAiFunction xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Databricks の Genie に営業データを自然文で質問し、日本語の回答と生成SQLを得る</description>
+    <developerName>Ask_Sales_Genie</developerName>
+    <invocationTarget>DatabricksGenieService</invocationTarget>
+    <invocationTargetType>apex</invocationTargetType>
+    <isConfirmationRequired>false</isConfirmationRequired>
+    <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+    <localDeveloperName>Ask_Sales_Genie</localDeveloperName>
+    <masterLabel>Genie に営業データを質問</masterLabel>
+    <progressIndicatorMessage>Databricks の Genie がデータを分析しています...</progressIndicatorMessage>
+</GenAiFunction>

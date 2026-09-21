@@ -19,7 +19,7 @@ from mlflow.pyfunc import ChatAgent
 from mlflow.types.agent import ChatAgentMessage, ChatAgentResponse
 
 # 作成済みの Genie Space
-GENIE_SPACE_ID = "01f1b4cc0d861bdcb5b66159bad6c4f5"
+GENIE_SPACE_ID = "01f1b4f5cca01e879e5ae04b2823e9c9"
 
 # Genie は質問が日本語なら日本語で返すが、書式を揃えるため明示する
 JA_HINT = "（日本語で、金額は3桁区切りで回答してください）"

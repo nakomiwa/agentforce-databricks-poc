@@ -26,7 +26,7 @@ CATALOG = "workspace"
 SCHEMA = "sfdc_poc"
 MODEL_NAME = f"{CATALOG}.{SCHEMA}.genie_sales_agent"
 ENDPOINT_NAME = "sfdc-genie-agent"
-GENIE_SPACE_ID = "01f1b4cc0d861bdcb5b66159bad6c4f5"
+GENIE_SPACE_ID = "01f1b4f5cca01e879e5ae04b2823e9c9"
 WAREHOUSE_ID = "e97a8ff7fddc4165"
 
 AGENT_FILE = "genie_agent.py"
@@ -147,7 +147,9 @@ while time.time() - began < WAIT_MINUTES * 60:
     if (ready, update) != last:
         print(f"  [{time.time() - began:6.0f}s] ready={ready}  config_update={update}")
         last = (ready, update)
-    if ready == "READY":
+    # ready だけ見ると、旧バージョンが配信中でも抜けてしまう。
+    # 新バージョンに切り替わったかは config_update == NOT_UPDATING で判定する。
+    if ready == "READY" and update == "NOT_UPDATING":
         break
     if update in ("UPDATE_FAILED", "UPDATE_CANCELED"):
         break

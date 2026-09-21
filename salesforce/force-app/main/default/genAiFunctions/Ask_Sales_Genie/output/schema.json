@@ -1,0 +1,51 @@
+{
+    "unevaluatedProperties": false,
+    "properties": {
+        "answer": {
+            "title": "answer",
+            "description": "Genie からの日本語回答",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        },
+        "generated_sql": {
+            "title": "generated_sql",
+            "description": "Genie が生成して実行した SQL。根拠を示したいときに使う。",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        },
+        "conversation_id": {
+            "title": "conversation_id",
+            "description": "次の追質問でそのまま渡すと文脈が維持される会話ID",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        },
+        "success": {
+            "title": "success",
+            "description": "取得に成功したか",
+            "lightning:type": "lightning__booleanType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        },
+        "error_message": {
+            "title": "error_message",
+            "description": "失敗時のメッセージ",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        }
+    },
+    "lightning:type": "lightning__objectType"
+}

@@ -1,0 +1,19 @@
+{
+    "required": ["question"],
+    "unevaluatedProperties": false,
+    "properties": {
+        "question": {
+            "title": "question",
+            "description": "営業データに関する自然文の質問。日本語でそのまま渡す。",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false
+        },
+        "conversation_id": {
+            "title": "conversation_id",
+            "description": "直前の回答に含まれる会話ID。同じ話題の追質問のときだけ渡す。新しい話題なら空にする。",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false
+        }
+    },
+    "lightning:type": "lightning__objectType"
+}

@@ -3,7 +3,8 @@
 # Databricks の Unity Catalog に登録した 3 つの API を呼び分けるエージェント
 #   ① get_sales_summary    : JSON を受け取り、自作 LWC（カード＋表）で表示
 #   ② get_sales_report_html: HTML を受け取り、自作 LWC（リッチテキスト）で表示
-#   ③ ask_databricks_agent : Databricks 側エージェントの日本語回答をそのまま返す
+#   ③ ask_sales_genie      : Genie が実テーブルに NL->SQL を実行し、日本語回答と生成SQLを返す
+#                            （旧 ask_databricks_agent / ai_query 方式は Apex を残したまま外してある）
 # =============================================================================
 
 config:
@@ -49,11 +50,17 @@ subagent sales_insight:
 
          | 「LWC」「表」「一覧」「サマリ」「数字で」と言われたら {!@actions.get_sales_summary} を呼びます。
            「HTML」「レポート」「帳票」「資料」と言われたら {!@actions.get_sales_report_html} を呼びます。
-           「なぜ」「分析して」「比較して」「考察」など考えを求められたら {!@actions.ask_databricks_agent} を呼びます。
+           上記以外の、データそのものを問う質問（件数・金額・比較・傾向・理由など）は
+           {!@actions.ask_sales_genie} を呼びます。Genie が実データに SQL を発行して答えます。
 
          | ①②のアクションは画面に表示用の部品を返します。
            その場合は結果を文章で読み上げず、「表示しました。」程度の短い一言だけを返してください。
            ③のアクションは回答テキストを返すので、その内容をそのまま日本語で伝えてください。
+           generated_sql は聞かれたときだけ示してください。
+
+         | {!@actions.ask_sales_genie} で同じ話題を掘り下げる追質問をするときは、
+           直前の回答に含まれていた conversation_id をそのまま渡してください。
+           話題が変わったときは conversation_id を空にして新しい会話を始めてください。
 
          | アクションが success = false を返した場合は、error_message の内容を日本語でそのまま伝え、
            もう一度試すよう案内してください。推測でデータを作ってはいけません。
@@ -71,8 +78,9 @@ subagent sales_insight:
             set @variables.last_region = @inputs.region
             set @variables.last_period = @inputs.period
 
-         ask_databricks_agent: @actions.ask_databricks_agent
+         ask_sales_genie: @actions.ask_sales_genie
             with question = ...
+            with conversation_id = ...
 
    actions:
       # ---------- ① JSON -> LWC ----------
@@ -141,18 +149,32 @@ subagent sales_insight:
          progress_indicator_message: "Databricks でレポートを生成しています..."
          source: "Get_Sales_Report_Html"
 
-      # ---------- ③ カスタムエージェント ----------
-      ask_databricks_agent:
-         description: "Databricks 側の営業分析エージェントに質問し、日本語の回答を得る"
+      # ---------- ③ Genie（Model Serving 経由） ----------
+      ask_sales_genie:
+         description: "Databricks の Genie に営業データを自然文で質問し、日本語の回答と生成SQLを得る"
          inputs:
             question: string
                description: "営業データに関する自然文の質問。日本語でそのまま渡す。"
                label: "question"
                is_required: True
+            conversation_id: string
+               description: "同じ話題の追質問のときだけ、直前の回答に含まれる会話IDを渡す。新しい話題なら空にする。"
+               label: "conversation_id"
+               is_required: False
          outputs:
             answer: string
-               description: "エージェントからの日本語回答"
+               description: "Genie からの日本語回答"
                label: "answer"
+               filter_from_agent: False
+               is_displayable: False
+            generated_sql: string
+               description: "Genie が生成して実行した SQL。根拠を聞かれたときに示す。"
+               label: "generated_sql"
+               filter_from_agent: False
+               is_displayable: False
+            conversation_id: string
+               description: "次の追質問でそのまま渡すと文脈が維持される会話ID"
+               label: "conversation_id"
                filter_from_agent: False
                is_displayable: False
             success: boolean
@@ -161,9 +183,9 @@ subagent sales_insight:
             error_message: string
                label: "error_message"
                is_displayable: False
-         target: "apex://DatabricksAgentService"
-         label: "Databricks エージェントに質問"
+         target: "apex://DatabricksGenieService"
+         label: "Genie に営業データを質問"
          require_user_confirmation: False
          include_in_progress_indicator: True
-         progress_indicator_message: "Databricks のエージェントが分析しています..."
-         source: "Ask_Sales_Agent"
+         progress_indicator_message: "Databricks の Genie がデータを分析しています..."
+         source: "Ask_Sales_Genie"

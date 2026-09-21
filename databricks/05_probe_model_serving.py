@@ -186,6 +186,13 @@ if state != "READY":
     print()
     print("     ▼ Databricks の画面で「サービング」→ このエンドポイント →")
     print("       「イベント」「ビルドログ」を開いて、エラー本文を共有してください。")
+    # Free Edition は同時実行枠が小さい。失敗してもエンドポイントは必ず消す。
+    if CLEANUP:
+        try:
+            w.serving_endpoints.delete(ENDPOINT_NAME)
+            print("     （枠を空けるためエンドポイントを削除しました）")
+        except Exception:
+            pass
     raise SystemExit(1)
 
 print()
