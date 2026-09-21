@@ -5,8 +5,8 @@ Salesforce の **Agentforce エージェント**から **Databricks** の営業�
 
 | # | 利用者の発話例 | 返るもの | 実装 |
 |---|---|---|---|
-| ① | 「関東の2026-Q3の営業サマリをLWCで見せて」 | 自作 LWC（KPI 4枚＋明細リスト） | UC Function → Apex → Custom Lightning Type |
-| ② | 「同じ条件でHTMLレポートを出して」 | HTML の表（リッチテキスト描画） | UC Function → Apex → Custom Lightning Type |
+| ① | 「関東の2026-Q3の営業サマリをLWCで見せて」 | 自作 LWC（KPI 4枚＋明細リスト） | UC Function（描画スペック JSON）→ Apex → 汎用レンダラ LWC |
+| ② | 「同じ条件でレポートを出して」 | 明細表（KPI ＋ 3 列テーブル） | UC Function（描画スペック JSON）→ Apex → 汎用レンダラ LWC |
 | ③ | 「受注率がいちばん高い地域は？」 | 日本語のテキスト回答＋生成された SQL | Genie スペース → Model Serving → Apex |
 
 ---
@@ -30,8 +30,8 @@ Databricks SQL ウェアハウス                    ▼
         ▼                                     │
 Unity Catalog  workspace.sfdc_poc  <──────────┘
   ├ opportunities / accounts   ダミー営業データ
-  ├ get_sales_summary_json()   ①
-  ├ get_sales_report_html()    ②
+  ├ get_sales_summary_spec()   ①（描画スペック JSON）
+  ├ get_sales_report_spec()    ②（描画スペック JSON）
   └ genie_sales_agent          ③（UC 登録された ChatAgent モデル）
 ```
 
@@ -85,13 +85,14 @@ salesforce/force-app/main/default/
 ├── aiAuthoringBundles/DatabricksSalesAgent/   エージェント定義（Agent Script）
 ├── classes/
 │   ├── DatabricksSqlClient.cls       ①② の共通 HTTP クライアント（★環境依存の値あり）
-│   ├── DatabricksSalesService.cls    ①
-│   ├── DatabricksReportService.cls   ②
+│   ├── DatabricksRender.cls              描画スペックの受け口 {title, specJson}
+│   ├── DatabricksSummarySpecService.cls  ①
+│   ├── DatabricksReportSpecService.cls   ②
 │   ├── DatabricksGenieClient.cls     ③ Model Serving 呼び出し
 │   └── DatabricksGenieService.cls    ③ Invocable
 ├── genAiFunctions/                   ①②③ のアクション定義
-├── lightningTypes/                   c__salesSummaryV2 / c__salesReportHtml
-└── lwc/                              2つのレンダラ
+├── lightningTypes/                   c__renderPayload（①②③ 共用の 1 つ）
+└── lwc/                              databricksBlockRenderer（汎用レンダラ 1 本）
 
 バッチは、それぞれが操作する側のフォルダに置いてある。
 
@@ -187,12 +188,14 @@ Windows なら `salesforce\deploy.bat` をダブルクリックでも同じこ�
 開発者コンソール → Debug → Open Execute Anonymous Window:
 
 ```apex
-DatabricksSalesService.Request r = new DatabricksSalesService.Request();
+DatabricksSummarySpecService.Request r = new DatabricksSummarySpecService.Request();
 r.region = '関東';
 r.period = '2026-Q3';
-DatabricksSalesService.Response res =
-    DatabricksSalesService.getSalesSummary(new List<DatabricksSalesService.Request>{ r })[0];
+DatabricksSummarySpecService.Response res =
+    DatabricksSummarySpecService.getSalesSummarySpec(
+        new List<DatabricksSummarySpecService.Request>{ r })[0];
 System.debug('success=' + res.success + ' err=' + res.error_message);
+System.debug(res.card != null ? res.card.specJson : '(null)');
 ```
 
 **B-5. 会話テスト**

@@ -25,3 +25,6 @@ databricks/databricks_deploy.log
 databricks/databricks_deploy.prev.log
 databricks/.databricks/
 .databricks/
+
+# 誤って作られたリポジトリの複製（中身は同じ。削除は要確認）
+agentforce-databricks-poc/
