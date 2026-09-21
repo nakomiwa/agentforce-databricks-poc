@@ -51,6 +51,41 @@ if not os.path.exists(AGENT_FILE):
 
 
 # -----------------------------------------------------------------------
+# STEP 0: 事前確認と後片付け
+#   Free Edition は provisioned concurrency の枠が小さく、古いバージョンが
+#   配信されたままだと次のデプロイが Quota Exceeded で落ちる。
+#   デプロイ前に、いま何が配信されているかを必ず表示する。
+# -----------------------------------------------------------------------
+print("=" * 72)
+print("STEP 0  既存エンドポイントの状態")
+print("=" * 72)
+
+try:
+    _ep = w.serving_endpoints.get(ENDPOINT_NAME)
+    _entities = (_ep.config.served_entities if _ep.config else None) or []
+    print(f"  {ENDPOINT_NAME}: 配信中 {len(_entities)} 件")
+    for _se in _entities:
+        print("   -", _se.name, "/ v", _se.entity_version)
+    if len(_entities) > 1:
+        print()
+        print("  ⚠ 複数バージョンが配信中です。新しいバージョンを足すと枠が不足し、")
+        print("    Quota Exceeded でデプロイが失敗する可能性があります。")
+        print("    失敗した場合は、古いバージョンを外してから再実行してください。")
+except Exception as e:
+    print(f"  {ENDPOINT_NAME}: まだ存在しません（新規作成されます） / {e}")
+
+print()
+print("  --- カスタムエンドポイント一覧（枠の消費状況）---")
+try:
+    for _e in w.serving_endpoints.list():
+        if not _e.name.startswith("databricks-"):
+            print("   -", _e.name)
+except Exception as e:
+    print("   一覧を取得できませんでした:", e)
+print()
+
+
+# -----------------------------------------------------------------------
 # STEP 1: デプロイ前にその場で動かす
 #   ここで失敗するものはデプロイしても必ず失敗する。
 #   同時に Genie のウォーム状態での応答時間を実測する。
