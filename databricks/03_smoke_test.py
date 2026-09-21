@@ -12,17 +12,18 @@ SCHEMA = "sfdc_poc"
 FQ = f"{CATALOG}.{SCHEMA}"
 
 # COMMAND ----------
-# ----- ① JSON -----
-summary_json = spark.sql(
-    f"SELECT {FQ}.get_sales_summary_json('関東', '2026-Q3') AS v"
+# ----- ① サマリ -----
+summary_spec = spark.sql(
+    f"SELECT {FQ}.get_sales_summary_spec('関東', '2026-Q3') AS v"
 ).collect()[0]["v"]
-print(summary_json)
+print(summary_spec)
 
 # COMMAND ----------
-# ----- ② HTML -----
-html = spark.sql(f"SELECT {FQ}.get_sales_report_html('関東', '2026-Q3') AS v").collect()[0]["v"]
-print(html[:1500])
-displayHTML(html)
+# ----- ② 明細レポート -----
+report_spec = spark.sql(
+    f"SELECT {FQ}.get_sales_report_spec('関東', '2026-Q3') AS v"
+).collect()[0]["v"]
+print(report_spec)
 
 # COMMAND ----------
 # ----- 利用可能なサービングエンドポイント一覧 -----
@@ -48,8 +49,8 @@ print("catalog/schema =", FQ)
 warehouse = next(iter(w.warehouses.list()), None)
 dbutils.notebook.exit(
     " / ".join([
-        f"① JSON {len(summary_json)}字",
-        f"② HTML {len(html)}字",
+        f"① spec {len(summary_spec)}字",
+        f"② spec {len(report_spec)}字",
         f"warehouse_id={warehouse.id if warehouse else 'なし'}",
         f"endpoints={[ep.name for ep in w.serving_endpoints.list()]}",
     ])

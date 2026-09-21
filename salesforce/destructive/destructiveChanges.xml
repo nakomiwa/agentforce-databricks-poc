@@ -1,20 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  旧 ③（ai_query 方式）の削除。
+  使わなくなった資材の削除。
 
-  ③ は Genie ベース（DatabricksGenieService / Ask_Sales_Genie）に移行済みで、
-  DatabricksSalesAgent.agent からは既に参照を外してある。
+  【削除の順序】
+    GenAiFunction → LightningTypeBundle / LightningComponentBundle → ApexClass
+  アクションが Apex や Lightning Type を参照しているため、参照している側から消す。
 
-  GenAiFunction を先に消す。Apex クラスを先に消すと、
-  invocationTarget が解決できなくなって失敗する可能性があるため。
+  【済】旧③（ai_query 方式）… 2026-09-21 実施
+        Ask_Sales_Agent / DatabricksAgentService
+
+  【今回】旧①②（素の JSON + HTML 方式）
+        specJson 方式（Get_Sales_Summary_Spec / Get_Sales_Report_Spec）に
+        置き換わり、.agent からの参照も外れている。
 -->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
-        <members>Ask_Sales_Agent</members>
+        <members>Get_Sales_Summary_V2</members>
+        <members>Get_Sales_Report_Html</members>
         <name>GenAiFunction</name>
     </types>
     <types>
-        <members>DatabricksAgentService</members>
+        <members>salesSummaryV2</members>
+        <members>salesReportHtml</members>
+        <name>LightningTypeBundle</name>
+    </types>
+    <types>
+        <members>salesSummaryRenderer</members>
+        <members>salesReportHtmlRenderer</members>
+        <name>LightningComponentBundle</name>
+    </types>
+    <types>
+        <members>DatabricksSalesService</members>
+        <members>DatabricksReportService</members>
         <name>ApexClass</name>
     </types>
     <version>66.0</version>

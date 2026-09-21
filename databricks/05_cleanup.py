@@ -38,10 +38,15 @@ SCHEMA = "sfdc_poc"
 PROBE_ENDPOINTS = ["sfdc-probe-echo"]
 PROBE_MODELS = [f"{CATALOG}.{SCHEMA}.probe_echo"]
 
-# 旧 ③（ai_query 方式）。Genie ベースに移行したので不要
+# 使わなくなった旧実装。
+#   ask_sales_agent / sales_context : 旧③（ai_query 方式）
+#   get_sales_summary_json          : 旧①（素の JSON を LWC 側で解釈していた）
+#   get_sales_report_html           : 旧②（HTML を rich text で描いていた）
 DROP_FUNCTIONS = [
     f"{CATALOG}.{SCHEMA}.ask_sales_agent",
     f"{CATALOG}.{SCHEMA}.sales_context",
+    f"{CATALOG}.{SCHEMA}.get_sales_summary_json",
+    f"{CATALOG}.{SCHEMA}.get_sales_report_html",
 ]
 
 # 本番で使うエンドポイント。最新バージョン 1 本だけを残す

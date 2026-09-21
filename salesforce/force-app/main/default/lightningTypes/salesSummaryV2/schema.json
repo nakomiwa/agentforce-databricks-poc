@@ -1,5 +1,0 @@
-{
-    "title": "Sales Summary V2",
-    "description": "Databricks から取得した営業サマリ (V2 / 文字列3項目)",
-    "lightning:type": "@apexClassType/c__DatabricksSalesService$SalesSummary"
-}

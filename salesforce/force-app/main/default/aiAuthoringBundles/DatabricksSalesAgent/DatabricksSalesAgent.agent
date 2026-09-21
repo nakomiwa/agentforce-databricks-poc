@@ -2,7 +2,7 @@
 # DatabricksSalesAgent
 # Databricks の Unity Catalog に登録した 3 つの API を呼び分けるエージェント
 #   ① get_sales_summary    : JSON を受け取り、自作 LWC（カード＋表）で表示
-#   ② get_sales_report_html: HTML を受け取り、自作 LWC（リッチテキスト）で表示
+#   ② get_sales_report_html: 描画スペックを受け取り、汎用レンダラ LWC で明細表を表示
 #   ③ ask_sales_genie      : Genie が実テーブルに NL->SQL を実行し、日本語回答と生成SQLを返す
 #                            （旧 ask_databricks_agent / ai_query 方式は Apex を残したまま外してある）
 # =============================================================================
