@@ -11,6 +11,7 @@ Salesforce から見たインターフェース:
             "custom_outputs":{"conversation_id":"...","sql":"SELECT ..."}}
 """
 
+import time
 import uuid
 
 import mlflow
@@ -26,6 +27,14 @@ JA_HINT = "（日本語で、金額は3桁区切りで回答してください�
 
 # クエリ結果を本文に添える行数
 MAX_PREVIEW_ROWS = 10
+
+# ポーリング間隔と上限。3 秒 × 120 回 = 最大 6 分。
+# Model Serving のサーバー側タイムアウトは 597 秒なので、その内側に収まる。
+POLL_SECONDS = 3
+MAX_POLLS = 120
+
+# Genie の終了状態
+TERMINAL = ("COMPLETED", "FAILED", "CANCELLED", "QUERY_RESULT_EXPIRED")
 
 
 class GenieChatAgent(ChatAgent):
@@ -47,6 +56,27 @@ class GenieChatAgent(ChatAgent):
             ],
             custom_outputs=custom_outputs or {},
         )
+
+    def _wait(self, conversation_id, message_id):
+        """完了までポーリングする。
+
+        SDK の start_conversation_and_wait / create_message_and_wait は使わない。
+        失敗時に Genie が返す error を捨てて
+        「failed to reach COMPLETED, got MessageStatus.FAILED」としか言わず、
+        原因（権限不足なのか SQL エラーなのか）が分からなくなるため。
+        """
+        msg = None
+        for _ in range(MAX_POLLS):
+            msg = self._w.genie.get_message(
+                space_id=GENIE_SPACE_ID,
+                conversation_id=conversation_id,
+                message_id=message_id,
+            )
+            status = msg.status.value if msg.status else ""
+            if status in TERMINAL:
+                return msg, status
+            time.sleep(POLL_SECONDS)
+        return msg, "TIMEOUT"
 
     def _rows_preview(self, conversation_id, message_id, attachment_id):
         """生成された SQL の実行結果を先頭数行だけテキスト化する。"""
@@ -74,18 +104,34 @@ class GenieChatAgent(ChatAgent):
 
         try:
             if conversation_id:
-                msg = self._w.genie.create_message_and_wait(
+                started = self._w.genie.create_message(
                     space_id=GENIE_SPACE_ID,
                     conversation_id=conversation_id,
                     content=prompt,
                 )
             else:
-                msg = self._w.genie.start_conversation_and_wait(
+                started = self._w.genie.start_conversation(
                     space_id=GENIE_SPACE_ID,
                     content=prompt,
                 )
         except Exception as e:
             return self._reply("Genie の呼び出しに失敗しました: " + str(e))
+
+        cid = getattr(started, "conversation_id", None) or conversation_id
+        mid = getattr(started, "message_id", None) or getattr(started, "id", None)
+
+        try:
+            msg, status = self._wait(cid, mid)
+        except Exception as e:
+            return self._reply("Genie の状態取得に失敗しました: " + str(e))
+
+        if status != "COMPLETED":
+            # ここで error を捨てない。原因の切り分けはこの文字列が頼りになる。
+            err = getattr(msg, "error", None)
+            return self._reply(
+                f"Genie が処理に失敗しました。status={status} / error={err}",
+                {"conversation_id": cid},
+            )
 
         parts = []
         sql = None
@@ -103,21 +149,17 @@ class GenieChatAgent(ChatAgent):
                 if sql_description:
                     parts.append(sql_description)
                 try:
-                    parts.append(
-                        self._rows_preview(
-                            msg.conversation_id, msg.id, att.attachment_id
-                        )
-                    )
-                except Exception:
+                    parts.append(self._rows_preview(cid, mid, att.attachment_id))
+                except Exception as e:
                     # 結果の取得に失敗しても、テキスト回答だけは返す
-                    pass
+                    parts.append(f"（クエリ結果の取得に失敗: {e}）")
 
         answer = "\n\n".join(p for p in parts if p) or "回答を取得できませんでした。"
 
         return self._reply(
             answer,
             {
-                "conversation_id": msg.conversation_id,
+                "conversation_id": cid,
                 "sql": sql,
                 "sql_description": sql_description,
             },

@@ -21,7 +21,11 @@ import traceback
 
 import mlflow
 from databricks.sdk import WorkspaceClient
-from mlflow.models.resources import DatabricksGenieSpace, DatabricksSQLWarehouse
+from mlflow.models.resources import (
+    DatabricksGenieSpace,
+    DatabricksSQLWarehouse,
+    DatabricksTable,
+)
 from mlflow.types.agent import ChatAgentMessage
 
 # ----- 設定 -------------------------------------------------------------
@@ -121,9 +125,15 @@ with mlflow.start_run(run_name="genie_sales_agent"):
         python_model=AGENT_FILE,
         input_example=INPUT_EXAMPLE,
         registered_model_name=MODEL_NAME,
+        # 自動パススルーのトークンは、ここに宣言したリソースにしかスコープが効かない。
+        # テーブルを書き忘れると、会話は始まるが SQL 実行段階で
+        # MessageStatus.FAILED になる（実際に踏んだ）。Genie が参照する
+        # テーブルはすべて列挙すること。
         resources=[
             DatabricksGenieSpace(genie_space_id=GENIE_SPACE_ID),
             DatabricksSQLWarehouse(warehouse_id=WAREHOUSE_ID),
+            DatabricksTable(table_name=f"{CATALOG}.{SCHEMA}.opportunities"),
+            DatabricksTable(table_name=f"{CATALOG}.{SCHEMA}.accounts"),
         ],
         pip_requirements=["mlflow", "databricks-sdk"],
     )
