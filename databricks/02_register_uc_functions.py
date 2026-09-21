@@ -197,4 +197,20 @@ print("③-2 ask_sales_agent 登録完了")
 
 # COMMAND ----------
 
-display(spark.sql(f"SHOW FUNCTIONS IN {FQ}"))
+# -----------------------------------------------------------------------------
+# 登録結果の確認
+#   SHOW FUNCTIONS は使わない。サーバーレス（Spark Connect）だと結果スキーマに
+#   マップできない列型が含まれ、[UNSUPPORTED_DATATYPE] で落ちる。
+#   information_schema なら普通のテーブルなので問題ない。
+# -----------------------------------------------------------------------------
+rows = spark.sql(f"""
+    SELECT routine_name, data_type
+    FROM {CATALOG}.information_schema.routines
+    WHERE routine_schema = '{SCHEMA}'
+    ORDER BY routine_name
+""").collect()
+
+print(f"{FQ} に登録されている FUNCTION: {len(rows)} 個")
+for r in rows:
+    print("  -", r["routine_name"], "->", r["data_type"])
+
