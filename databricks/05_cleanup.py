@@ -119,6 +119,11 @@ for full_name in PROBE_MODELS:
         print(f"  {full_name}: 削除対象")
         continue
     try:
+        # バージョンが残っていると registered model は消せない
+        #   Function '...' is not empty. The function has N model versions(s)
+        for mv in w.model_versions.list(full_name=full_name):
+            w.model_versions.delete(full_name=full_name, version=mv.version)
+            print(f"    v{mv.version} を削除")
         w.registered_models.delete(full_name)
         actions.append(f"モデル削除 {full_name.split('.')[-1]}")
         print(f"  {full_name}: 削除しました")
