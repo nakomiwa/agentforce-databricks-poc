@@ -2,39 +2,42 @@
 <!--
   使わなくなった資材の削除。
 
+  【重要】メタデータデプロイはトランザクション（rollbackOnError: true）。
+  1 件でも失敗すると、同じデプロイで削除できた分もすべてロールバックされる。
+  「6 件削除・2 件失敗」は「6 件消えた」ではなく「何も消えていない」。
+  参照を持つものは 1 回のデプロイで全部列挙すること。
+
   【削除の順序】
     GenAiFunction → LightningTypeBundle → LightningComponentBundle → ApexClass
-  参照している側から消す。逆順だと
-  「このApex クラスは、Salesforce の他の場所で参照されています」で失敗する。
+  参照している側から消す。
 
-  【済】2026-09-21 第1回
-        旧③: Ask_Sales_Agent / DatabricksAgentService
-  【済】2026-09-21 第2回
-        Get_Sales_Summary_V2 / Get_Sales_Report_Html
-        salesSummaryV2 / salesReportHtml
-        salesReportHtmlRenderer / DatabricksReportService
+  【済】2026-09-21 旧③: Ask_Sales_Agent / DatabricksAgentService
 
-  【今回】第2回で残ったもの。
-        リポジトリには無いが組織に残っていた v1 世代の資材
-        （salesSummary / Get_Sales_Summary）が
-        DatabricksSalesService と salesSummaryRenderer を掴んでいたため、
-        そちらを先に消す。
+  【今回】旧①② を世代まとめて。
+    v1 世代（salesSummary / Get_Sales_Summary）は
+    リポジトリには無いが組織に残っていたもの。
 -->
 <Package xmlns="http://soap.sforce.com/2006/04/metadata">
     <types>
         <members>Get_Sales_Summary</members>
+        <members>Get_Sales_Summary_V2</members>
+        <members>Get_Sales_Report_Html</members>
         <name>GenAiFunction</name>
     </types>
     <types>
         <members>salesSummary</members>
+        <members>salesSummaryV2</members>
+        <members>salesReportHtml</members>
         <name>LightningTypeBundle</name>
     </types>
     <types>
         <members>salesSummaryRenderer</members>
+        <members>salesReportHtmlRenderer</members>
         <name>LightningComponentBundle</name>
     </types>
     <types>
         <members>DatabricksSalesService</members>
+        <members>DatabricksReportService</members>
         <name>ApexClass</name>
     </types>
     <version>66.0</version>
