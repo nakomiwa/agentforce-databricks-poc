@@ -163,3 +163,13 @@ print()
 print("=" * 72)
 print("完了")
 print("=" * 72)
+
+# COMMAND ----------
+
+# bundle run の Output に出す要約。片付けた結果の実際の状態を出す。
+after = []
+for ep in w.serving_endpoints.list():
+    n = len((ep.config.served_entities if ep.config else None) or [])
+    after.append(f"{ep.name}(配信{n}本)")
+
+dbutils.notebook.exit(("[DRY RUN] " if DRY_RUN else "") + "残ったエンドポイント: " + (", ".join(after) or "なし"))

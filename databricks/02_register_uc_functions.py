@@ -214,3 +214,10 @@ print(f"{FQ} に登録されている FUNCTION: {len(rows)} 個")
 for r in rows:
     print("  -", r["routine_name"], "->", r["data_type"])
 
+# COMMAND ----------
+
+# bundle run の Output に出す要約。ノートブックの画面を開かずに結果を判断するため。
+dbutils.notebook.exit(
+    f"FUNCTION {len(rows)} 個: " + ", ".join(r["routine_name"] for r in rows)
+)
+

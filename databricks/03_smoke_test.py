@@ -12,7 +12,10 @@ FQ = f"{CATALOG}.{SCHEMA}"
 
 # COMMAND ----------
 # ----- ① JSON -----
-print(spark.sql(f"SELECT {FQ}.get_sales_summary_json('関東', '2026-Q3') AS v").collect()[0]["v"])
+summary_json = spark.sql(
+    f"SELECT {FQ}.get_sales_summary_json('関東', '2026-Q3') AS v"
+).collect()[0]["v"]
+print(summary_json)
 
 # COMMAND ----------
 # ----- ② HTML -----
@@ -22,7 +25,11 @@ displayHTML(html)
 
 # COMMAND ----------
 # ----- ③ エージェント -----
-print(spark.sql(f"SELECT {FQ}.ask_sales_agent('関東と関西では、どちらが受注率が高いですか。理由も述べてください。') AS v").collect()[0]["v"])
+agent_answer = spark.sql(
+    f"SELECT {FQ}.ask_sales_agent("
+    f"'関東と関西では、どちらが受注率が高いですか。理由も述べてください。') AS v"
+).collect()[0]["v"]
+print(agent_answer)
 
 # COMMAND ----------
 # ----- 利用可能なサービングエンドポイント一覧 -----
@@ -41,3 +48,17 @@ for wh in w.warehouses.list():
 
 print("\nworkspace host =", w.config.host)
 print("catalog/schema =", FQ)
+
+# COMMAND ----------
+
+# bundle run の Output に出す要約。
+warehouse = next(iter(w.warehouses.list()), None)
+dbutils.notebook.exit(
+    " / ".join([
+        f"① JSON {len(summary_json)}字",
+        f"② HTML {len(html)}字",
+        f"③ 回答 {len(agent_answer)}字",
+        f"warehouse_id={warehouse.id if warehouse else 'なし'}",
+        f"endpoints={[ep.name for ep in w.serving_endpoints.list()]}",
+    ])
+)

@@ -219,16 +219,27 @@ path = f"/serving-endpoints/{ENDPOINT_NAME}/invocations"
 body = {"messages": [{"role": "user", "content": SMOKE_QUESTION}]}
 
 out = None
+timings = []
 for i in (1, 2):
     began = time.time()
     try:
         out = w.api_client.do("POST", path, body=body)
-        print(f"{i}回目: {time.time() - began:.1f} 秒")
+        sec = time.time() - began
+        timings.append(f"{sec:.1f}s")
+        print(f"{i}回目: {sec:.1f} 秒")
     except Exception as e:
-        print(f"{i}回目: {time.time() - began:.1f} 秒 で失敗 -> {e}")
+        sec = time.time() - began
+        timings.append(f"{sec:.1f}s NG")
+        print(f"{i}回目: {sec:.1f} 秒 で失敗 -> {e}")
 
 print("※ 2回目がウォーム状態の実測値。Apex の callout 上限は 120 秒。")
 print(out)
+
+answer = ""
+try:
+    answer = (out["messages"][-1]["content"] or "")[:200].replace("\n", " ")
+except Exception:
+    answer = "(回答の取り出しに失敗)"
 
 print()
 print("=" * 72)
@@ -236,3 +247,14 @@ print("完了。Apex に設定する値:")
 print("  エンドポイント名:", ENDPOINT_NAME)
 print("  URL            :", f"{w.config.host}/serving-endpoints/{ENDPOINT_NAME}/invocations")
 print("=" * 72)
+
+# COMMAND ----------
+
+# bundle run の Output に出す要約。
+dbutils.notebook.exit(
+    " / ".join([
+        f"{ENDPOINT_NAME} v{version} READY",
+        f"応答 {' '.join(timings)}",
+        f"回答: {answer}",
+    ])
+)

@@ -10,6 +10,8 @@ set LOG=%ROOT%\databricks_deploy.log
 
 cd /d %ROOT%\databricks
 
+if exist "%LOG%" move /y "%LOG%" "%ROOT%\databricks_deploy.prev.log" >nul
+
 echo === bundle deploy === > "%LOG%"
 call databricks bundle deploy -p sfdc >> "%LOG%" 2>&1
 echo. >> "%LOG%"

@@ -20,5 +20,6 @@ Claude outputs/
 
 # Databricks CLI / Asset Bundles
 databricks_deploy.log
+databricks_deploy.prev.log
 databricks/.databricks/
 .databricks/
