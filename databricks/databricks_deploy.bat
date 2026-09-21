@@ -5,10 +5,10 @@ set DATABRICKS_CLI_DO_NOT_TRACK=1
 set JOB=%1
 if "%JOB%"=="" set JOB=deploy_all
 
-set ROOT=C:\dev\agentforce-databricks-poc
+set ROOT=C:\dev\agentforce-databricks-poc\databricks
 set LOG=%ROOT%\databricks_deploy.log
 
-cd /d %ROOT%\databricks
+cd /d %ROOT%
 
 if exist "%LOG%" move /y "%LOG%" "%ROOT%\databricks_deploy.prev.log" >nul
 

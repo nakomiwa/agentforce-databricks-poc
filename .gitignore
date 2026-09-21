@@ -1,7 +1,9 @@
 # ローカル作業ファイル（環境依存・再生成可能）
+# バッチの実行結果。バッチと同じ場所に出る
+salesforce/deploy.json
+salesforce/retrieve.json
+salesforce/destroy.json
 deploy.log
-deploy.json
-retrieve.json
 _excluded_metadata/
 
 # sf CLI のローカル状態・組織スナップショット
@@ -19,7 +21,7 @@ node_modules/
 Claude outputs/
 
 # Databricks CLI / Asset Bundles
-databricks_deploy.log
-databricks_deploy.prev.log
+databricks/databricks_deploy.log
+databricks/databricks_deploy.prev.log
 databricks/.databricks/
 .databricks/

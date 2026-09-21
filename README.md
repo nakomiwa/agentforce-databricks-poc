@@ -87,9 +87,15 @@ salesforce/force-app/main/default/
 ├── lightningTypes/                   c__salesSummaryV2 / c__salesReportHtml
 └── lwc/                              2つのレンダラ
 
-deploy.bat      ダブルクリックでデプロイ（結果は deploy.json）
-retrieve.bat    組織側の実体を取得（結果は retrieve.json）
-destroy.bat     組織から資材を削除（salesforce/destructive/ の定義に従う。結果は destroy.json）
+バッチは、それぞれが操作する側のフォルダに置いてある。
+
+```
+databricks/databricks_deploy.bat  ジョブを実行（結果は databricks/databricks_deploy.log）
+salesforce/deploy.bat             デプロイ（結果は salesforce/deploy.json）
+salesforce/retrieve.bat           組織側の実体を取得（salesforce/retrieve.json）
+salesforce/destroy.bat            組織から資材を削除（salesforce/destroy.json）
+                                  消す対象は salesforce/destructive/ に書く
+```
 ```
 
 ---
@@ -168,7 +174,7 @@ sf org login web -a agentforce-poc
 sf project deploy start -o agentforce-poc -d force-app/main/default
 ```
 
-Windows なら `deploy.bat` をダブルクリックでも同じことができます。
+Windows なら `salesforce\deploy.bat` をダブルクリックでも同じことができます。
 
 **B-4. Apex 単体での疎通確認**（Agentforce を触る前に必ず実施）
 
@@ -253,7 +259,7 @@ databricks auth login --host https://dbc-c4f38c73-28bc.cloud.databricks.com --pr
 
 ### 使い方
 
-`databricks_deploy.bat` をダブルクリックする。既定で `deploy_all` が走り、
+`databricks/databricks_deploy.bat` をダブルクリックする。既定で `deploy_all` が走り、
 一連の資材がまとめてデプロイされて、結果が `databricks_deploy.log` に出る。
 
 ジョブを指定する場合:
