@@ -96,10 +96,10 @@ subagent sales_insight:
                label: "period"
                is_required: True
          outputs:
-            summary: object
+            card: object
                description: "営業サマリ。画面部品として表示される"
-               label: "summary"
-               complex_data_type_name: "c__salesSummaryV2"
+               label: "card"
+               complex_data_type_name: "c__renderPayload"
                filter_from_agent: False
                is_displayable: True
             success: boolean
@@ -110,16 +110,16 @@ subagent sales_insight:
                description: "失敗時のメッセージ"
                label: "error_message"
                is_displayable: False
-         target: "apex://DatabricksSalesService"
-         label: "営業サマリ取得"
+         target: "apex://DatabricksSummarySpecService"
+         label: "営業サマリ取得(スペック)"
          require_user_confirmation: False
          include_in_progress_indicator: True
-         progress_indicator_message: "Databricks から営業サマリを取得しています..."
-         source: "Get_Sales_Summary_V2"
+         progress_indicator_message: "Databricks でサマリを集計しています..."
+         source: "Get_Sales_Summary_Spec"
 
-      # ---------- ② HTML -> LWC ----------
+      # ---------- ② 明細レポート（specJson） ----------
       get_sales_report_html:
-         description: "Databricks から営業レポートを HTML で取得し、画面に描画する"
+         description: "Databricks から営業レポート（明細表）を取得し、画面に描画する"
          inputs:
             region: string
                description: "対象地域。関東/関西/中部/九州/東北/北海道 のいずれか、または 全社"
@@ -130,10 +130,10 @@ subagent sales_insight:
                label: "period"
                is_required: True
          outputs:
-            report: object
-               description: "HTML レポート。画面部品として表示される"
-               label: "report"
-               complex_data_type_name: "c__salesReportHtml"
+            card: object
+               description: "営業レポート。画面部品として表示される"
+               label: "card"
+               complex_data_type_name: "c__renderPayload"
                filter_from_agent: False
                is_displayable: True
             success: boolean
@@ -142,12 +142,12 @@ subagent sales_insight:
             error_message: string
                label: "error_message"
                is_displayable: False
-         target: "apex://DatabricksReportService"
-         label: "営業レポート取得(HTML)"
+         target: "apex://DatabricksReportSpecService"
+         label: "営業レポート取得(スペック)"
          require_user_confirmation: False
          include_in_progress_indicator: True
          progress_indicator_message: "Databricks でレポートを生成しています..."
-         source: "Get_Sales_Report_Html"
+         source: "Get_Sales_Report_Spec"
 
       # ---------- ③ Genie（Model Serving 経由） ----------
       ask_sales_genie:

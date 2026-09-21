@@ -1,0 +1,5 @@
+{
+    "title": "Databricks Render Payload",
+    "description": "Databricks が返す描画スペック JSON（if_render_spec v1）。①②③ で共用する",
+    "lightning:type": "@apexClassType/c__DatabricksRender$RenderPayload"
+}

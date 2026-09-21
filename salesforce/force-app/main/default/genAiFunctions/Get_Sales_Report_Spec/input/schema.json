@@ -1,0 +1,25 @@
+{
+    "unevaluatedProperties": false,
+    "properties": {
+        "region": {
+            "title": "region",
+            "description": "対象地域。関東/関西/中部/九州/東北/北海道 のいずれか、または 全社",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:requiresUserInput": true
+        },
+        "period": {
+            "title": "period",
+            "description": "対象四半期。2026-Q1〜2026-Q4 のいずれか、または 全期間",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:requiresUserInput": true
+        }
+    },
+    "required": ["region", "period"],
+    "lightning:type": "lightning__objectType"
+}

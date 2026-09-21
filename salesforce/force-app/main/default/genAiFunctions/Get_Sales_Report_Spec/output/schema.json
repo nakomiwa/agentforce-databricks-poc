@@ -1,0 +1,33 @@
+{
+    "unevaluatedProperties": false,
+    "properties": {
+        "card": {
+            "title": "card",
+            "description": "描画スペック。画面部品として表示される",
+            "lightning:type": "c__renderPayload",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": true,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        },
+        "success": {
+            "title": "success",
+            "description": "取得に成功したか",
+            "lightning:type": "lightning__booleanType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        },
+        "error_message": {
+            "title": "error_message",
+            "description": "失敗時のメッセージ",
+            "lightning:type": "lightning__textType",
+            "lightning:isPII": false,
+            "copilotAction:isDisplayable": false,
+            "copilotAction:isUsedByPlanner": true,
+            "copilotAction:useHydratedPrompt": false
+        }
+    },
+    "lightning:type": "lightning__objectType"
+}

@@ -1,0 +1,39 @@
+.kpi-tile {
+    border: 1px solid #e5e5e5;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+}
+.kpi-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.3;
+}
+.row-line {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 0.4rem 0;
+}
+.row-line:last-child {
+    border-bottom: none;
+}
+.spec-table {
+    width: 100%;
+    font-size: 0.8rem;
+    border-collapse: collapse;
+}
+.spec-table th,
+.spec-table td {
+    border-bottom: 1px solid #eee;
+    padding: 0.3rem 0.4rem;
+    vertical-align: top;
+}
+.spec-table th {
+    background: #f7f7f7;
+    text-align: left;
+    white-space: nowrap;
+}
+.align-right {
+    text-align: right;
+}
+.align-center {
+    text-align: center;
+}

@@ -1,0 +1,99 @@
+<template>
+    <lightning-card title={title} icon-name="standard:dashboard">
+        <div class="slds-var-p-horizontal_medium slds-var-p-bottom_medium">
+            <template if:true={subtitle}>
+                <p class="slds-text-body_small slds-text-color_weak slds-var-m-bottom_x-small">
+                    {subtitle}
+                </p>
+            </template>
+
+            <template if:true={parseError}>
+                <p class="slds-text-color_error">{parseError}</p>
+            </template>
+
+            <template for:each={blocks} for:item="b">
+                <div key={b.key} class="slds-var-m-bottom_small">
+                    <template if:true={b.blockTitle}>
+                        <p class="slds-text-title_caps slds-var-m-bottom_xx-small">{b.blockTitle}</p>
+                    </template>
+
+                    <!-- text -->
+                    <template if:true={b.isText}>
+                        <p class={b.textClass}>{b.text}</p>
+                    </template>
+
+                    <!-- kpiGrid -->
+                    <template if:true={b.isKpi}>
+                        <div class="slds-grid slds-wrap">
+                            <template for:each={b.items} for:item="k">
+                                <div key={k.key} class={k.colClass}>
+                                    <div class="kpi-tile">
+                                        <p class="slds-text-body_small slds-text-color_weak">{k.label}</p>
+                                        <p class={k.valueClass}>{k.value}</p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <!-- list -->
+                    <template if:true={b.isList}>
+                        <template for:each={b.items} for:item="r">
+                            <div key={r.key} class="row-line">
+                                <div class="slds-grid slds-grid_align-spread">
+                                    <span class="slds-truncate">{r.primary}</span>
+                                    <span class="slds-text-body_small">{r.value}</span>
+                                </div>
+                                <div class="slds-grid slds-grid_align-spread">
+                                    <span class="slds-text-body_small slds-text-color_weak slds-truncate">
+                                        {r.secondary}
+                                    </span>
+                                    <template if:true={r.hasBadge}>
+                                        <span class={r.badgeClass}>{r.badgeLabel}</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+
+                    <!-- table -->
+                    <template if:true={b.isTable}>
+                        <table class="spec-table">
+                            <thead>
+                                <tr>
+                                    <template for:each={b.headers} for:item="h">
+                                        <th key={h.key} class={h.headClass}>{h.label}</th>
+                                    </template>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template for:each={b.rows} for:item="row">
+                                    <tr key={row.key} class={row.rowClass}>
+                                        <template for:each={row.cells} for:item="c">
+                                            <td key={c.key} class={c.cellClass}>{c.text}</td>
+                                        </template>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </template>
+
+                    <!-- badge -->
+                    <template if:true={b.isBadge}>
+                        <span class={b.badgeClass}>{b.badgeLabel}</span>
+                    </template>
+
+                    <!-- html（逃げ道。常用しない） -->
+                    <template if:true={b.isHtml}>
+                        <lightning-formatted-rich-text value={b.html}></lightning-formatted-rich-text>
+                    </template>
+
+                    <!-- image -->
+                    <template if:true={b.isImage}>
+                        <img src={b.src} alt={b.alt} style={b.imgStyle} />
+                    </template>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>
