@@ -99,20 +99,31 @@ print("=" * 72)
 print(f"{tag}STEP 3  検証用 UC モデルの削除")
 print("=" * 72)
 
+# 存在確認に get() を使わない。削除以外の理由で例外が出たときに
+# 「既にありません」と誤判定し、実際には残っていた（probe_echo で踏んだ）。
+# 一覧に出ているかで判定し、削除は結果をそのまま報告する。
+present = set()
+try:
+    for m in w.registered_models.list(catalog_name=CATALOG, schema_name=SCHEMA):
+        present.add(m.full_name)
+    print("  登録モデル:", ", ".join(sorted(present)) or "なし")
+except Exception:
+    print("  モデル一覧を取得できませんでした。存在確認なしで削除を試みます")
+    present = set(PROBE_MODELS)
+
 for full_name in PROBE_MODELS:
-    try:
-        w.registered_models.get(full_name)
-    except Exception:
-        print(f"  {full_name}: 既にありません")
+    if full_name not in present:
+        print(f"  {full_name}: 一覧にありません")
         continue
     if DRY_RUN:
         print(f"  {full_name}: 削除対象")
         continue
     try:
         w.registered_models.delete(full_name)
-        actions.append(f"モデル削除 {full_name}")
+        actions.append(f"モデル削除 {full_name.split('.')[-1]}")
         print(f"  {full_name}: 削除しました")
-    except Exception:
+    except Exception as e:
+        actions.append(f"モデル削除に失敗 {full_name.split('.')[-1]}: {e}")
         traceback.print_exc()
 print()
 
@@ -126,11 +137,18 @@ print("=" * 72)
 print(f"{tag}STEP 3.5  使わなくなった UC 関数の削除")
 print("=" * 72)
 
+fn_present = set()
+try:
+    for f in w.functions.list(catalog_name=CATALOG, schema_name=SCHEMA):
+        fn_present.add(f.full_name)
+    print("  登録関数:", ", ".join(sorted(fn_present)) or "なし")
+except Exception:
+    print("  関数一覧を取得できませんでした。存在確認なしで削除を試みます")
+    fn_present = set(DROP_FUNCTIONS)
+
 for full_name in DROP_FUNCTIONS:
-    try:
-        w.functions.get(full_name)
-    except Exception:
-        print(f"  {full_name}: 既にありません")
+    if full_name not in fn_present:
+        print(f"  {full_name}: 一覧にありません")
         continue
     if DRY_RUN:
         print(f"  {full_name}: 削除対象")
@@ -139,7 +157,8 @@ for full_name in DROP_FUNCTIONS:
         w.functions.delete(full_name)
         actions.append(f"関数削除 {full_name.split('.')[-1]}")
         print(f"  {full_name}: 削除しました")
-    except Exception:
+    except Exception as e:
+        actions.append(f"関数削除に失敗 {full_name.split('.')[-1]}: {e}")
         traceback.print_exc()
 print()
 
@@ -227,9 +246,20 @@ for ep in w.serving_endpoints.list():
     n = len((ep.config.served_entities if ep.config else None) or [])
     after.append(f"{ep.name}(配信{n}本)")
 
+# 片付けた結果、いま何が残っているか。画面を開かずに確認できるようにする。
+rest = []
+try:
+    rest += [f"関数 {f.full_name.split('.')[-1]}"
+             for f in w.functions.list(catalog_name=CATALOG, schema_name=SCHEMA)]
+    rest += [f"モデル {m.full_name.split('.')[-1]}"
+             for m in w.registered_models.list(catalog_name=CATALOG, schema_name=SCHEMA)]
+except Exception as e:
+    rest = [f"一覧取得に失敗: {e}"]
+
 dbutils.notebook.exit(
     tag
     + "実施: " + ("; ".join(actions) or "なし（片付け対象なし）")
+    + " || 残: " + (", ".join(rest) or "なし")
     + " || カスタムエンドポイント: "
     + (", ".join(a for a in after if not a.startswith("databricks-")) or "なし")
 )
