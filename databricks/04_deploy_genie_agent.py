@@ -1,6 +1,6 @@
 # Databricks notebook source
 # =============================================================================
-# 06_deploy_genie_agent.py
+# 04_deploy_genie_agent.py
 #
 # ③ の Genie ラッパーを Unity Catalog に登録し、Model Serving にデプロイする。
 #

@@ -7,7 +7,7 @@ Salesforce の **Agentforce エージェント**から **Databricks** の営業�
 |---|---|---|---|
 | ① | 「関東の2026-Q3の営業サマリをLWCで見せて」 | 自作 LWC（KPI 4枚＋明細リスト） | UC Function → Apex → Custom Lightning Type |
 | ② | 「同じ条件でHTMLレポートを出して」 | HTML の表（リッチテキスト描画） | UC Function → Apex → Custom Lightning Type |
-| ③ | 「受注率がいちばん高い地域は？」 | 日本語のテキスト回答 | UC Function 内の `ai_query()` → Apex |
+| ③ | 「受注率がいちばん高い地域は？」 | 日本語のテキスト回答＋生成された SQL | Genie スペース → Model Serving → Apex |
 
 ---
 
@@ -17,54 +17,73 @@ Salesforce の **Agentforce エージェント**から **Databricks** の営業�
 利用者 ──チャット──> Agentforce エージェント（Agent Script）
                           │  アクション ①②③
                           ▼
-                   Apex（Named Credential 経由）
-                          │  POST /api/2.0/sql/statements
-                          ▼
-                  Databricks SQL ウェアハウス
-                          │  SELECT workspace.sfdc_poc.<function>(:args)
-                          ▼
-                Unity Catalog  workspace.sfdc_poc
-                  ├ opportunities / accounts   ダミー営業データ
-                  ├ get_sales_summary_json()   ①
-                  ├ get_sales_report_html()    ②
-                  ├ sales_context()
-                  └ ask_sales_agent()          ③（ai_query で基盤モデルを呼ぶ）
+                   Apex（指定ログイン情報 Databricks_Sales / OAuth M2M）
+                          │
+        ┌─────────────────┴──────────────────┐
+        │ ①②                                │ ③
+        ▼                                     ▼
+POST /api/2.0/sql/statements        POST /serving-endpoints/
+        │                              sfdc-genie-agent/invocations
+        ▼                                     │
+Databricks SQL ウェアハウス                    ▼
+        │  SELECT workspace.sfdc_poc.<fn>()   Genie スペース（NL→SQL）
+        ▼                                     │
+Unity Catalog  workspace.sfdc_poc  <──────────┘
+  ├ opportunities / accounts   ダミー営業データ
+  ├ get_sales_summary_json()   ①
+  ├ get_sales_report_html()    ②
+  └ genie_sales_agent          ③（UC 登録された ChatAgent モデル）
 ```
 
 ### 設計判断
 
-**Databricks Apps と Model Serving は使わない。** Free Edition ではアプリ数が 1〜3 に制限され
-24時間で自動停止し、カスタムモデルのサービングエンドポイント作成も事実上できません。
-代わりに ①②③ をすべて **Unity Catalog の FUNCTION** として登録し、
-Salesforce からは **SQL Statement Execution API** を直接呼びます。Databricks 側のデプロイ作業はゼロです。
+**Databricks Apps は使わない。Model Serving は使う。** Apps は Free Edition で数が制限され
+24時間で自動停止するため採用していません。一方 **カスタムモデルの Model Serving は Free Edition でも動きます**
+（当初「使えない」と判断していましたが、実測で覆りました）。
+
+③ に Model Serving を挟んでいるのは、**Genie Conversation API が非同期**だからです。
+Apex には `sleep` が無く、callout は 1 トランザクション合計 120 秒・100 回まで。
+Apex から直接ポーリングすると制限ギリギリになります。Model Serving はサーバー側タイムアウトが
+597 秒あり、**1 回の POST が完了まで待ってくれる**ので、Apex は callout 1 回で済みます。
+
+> Free Edition は provisioned concurrency の枠が非常に小さく、検証用エンドポイントを
+> 残したままにすると次のデプロイが `Quota Exceeded` で落ちます。`cleanup` ジョブで片付けます。
 
 **External Service ではなく Apex を使う。** 自作 LWC での表示（Custom Lightning Type）は
 **Apex クラスを入出力に使うアクションでしか効きません**。①②が「LWC で表示」「HTML で表示」
 という要件だったため、Apex 一択になりました。
 
-**認証は PAT。** Free Edition はアカウントコンソール・アカウントレベル API・SCIM が使えず、
-サービスプリンシパルの OAuth シークレット発行が確実に通らないためです。
+**認証は OAuth M2M（クライアントログイン情報フロー）。** v1 は PAT でしたが、v2 で
+サービスプリンシパル `sfdc-agentforce-poc` による OAuth M2M に切り替えました。
+Salesforce 側は外部ログイン情報の認証プロトコルを「OAuth 2.0」にするだけで、**Apex の変更は不要**です
+（指定ログイン情報が `Authorization` ヘッダーを自動生成するため）。
+
+> Salesforce の認証状況「設定済み」は **値が正しいことを保証しません**。
+> クライアントログイン情報フローでは保存時に実認証を行わないためです。
 
 ---
 
 ## ファイル構成
 
 ```
-databricks/
-├── 01_setup_unity_catalog.py    UC にダミー営業データを作る（日本語・円・国内地域）
-├── 02_register_uc_functions.py  ①②③ を UC FUNCTION として登録
-├── 03_smoke_test.py             動作確認＋ warehouse_id / モデル一覧の取得
-├── api_check.py                 疎通確認（Python・OS 問わず）
-├── curl_check.ps1               疎通確認（Windows PowerShell）
-└── curl_check.sh                疎通確認（macOS / Linux bash）
+databricks/                      ← すべて Asset Bundle のジョブとしてデプロイ／実行する
+├── databricks.yml               バンドル定義（ジョブはここに集約）
+├── 01_setup_unity_catalog.py    UC にダミー営業データを作る（破壊的。初回のみ）
+├── 02_register_uc_functions.py  ①② が使う UC FUNCTION を登録
+├── 03_smoke_test.py             疎通確認＋ warehouse_id の取得
+├── 04_deploy_genie_agent.py     ③ を UC 登録 → Model Serving へデプロイ
+├── 05_cleanup.py                検証用の残骸を削除し、配信を最新 1 本に絞る
+└── genie_agent.py               ③ の本体（ChatAgent 実装。★ノートブックではなくモジュール）
 
 salesforce/force-app/main/default/
 ├── aiAuthoringBundles/DatabricksSalesAgent/   エージェント定義（Agent Script）
 ├── classes/
-│   ├── DatabricksSqlClient.cls       共通 HTTP クライアント（★環境依存の値あり）
+│   ├── DatabricksSqlClient.cls       ①② の共通 HTTP クライアント（★環境依存の値あり）
 │   ├── DatabricksSalesService.cls    ①
 │   ├── DatabricksReportService.cls   ②
-│   └── DatabricksAgentService.cls    ③
+│   ├── DatabricksGenieClient.cls     ③ Model Serving 呼び出し
+│   ├── DatabricksGenieService.cls    ③ Invocable
+│   └── DatabricksAgentService.cls    旧③（ai_query 方式。切り戻し用に残置）
 ├── genAiFunctions/                   ①②③ のアクション定義
 ├── lightningTypes/                   c__salesSummaryV2 / c__salesReportHtml
 └── lwc/                              2つのレンダラ
@@ -79,21 +98,26 @@ retrieve.bat    組織側の実体を取得（結果は retrieve.json）
 
 ### A. Databricks 側
 
-1. `databricks/01_setup_unity_catalog.py` をワークスペースにインポートし、サーバーレスノートブックとして実行
-   → `workspace.sfdc_poc` に `accounts` 41件 / `opportunities` 180件
-2. `databricks/02_register_uc_functions.py` を実行 → FUNCTION 4つを登録
-3. `databricks/03_smoke_test.py` を実行 → ①②③の動作確認、**warehouse_id** を控える
-4. Settings → Developer → Access tokens で **PAT** を発行
-5. **手元の PC から** 疎通確認（Salesforce と同じ「外部クライアント」の立場で確認するため）
+**ノートブックへの貼り付けは不要です。** すべて Asset Bundle のジョブとして流します
+（詳細は末尾「Databricks 側のデプロイ」）。
 
 ```powershell
-$env:DATABRICKS_HOST  = "https://dbc-xxxxxxxx-xxxx.cloud.databricks.com"
-$env:DATABRICKS_TOKEN = "dapi..."
-$env:WAREHOUSE_ID     = "手順3で控えたID"
-python databricks/api_check.py
+:: 初回のみ。ダミーデータを作る（破壊的）
+.\databricks_deploy.bat setup_unity_catalog
+
+:: 以降はこれだけ。02 → 04 → 03 が順に流れる
+.\databricks_deploy.bat
 ```
 
-「3 / 3 成功」になるまで Salesforce 側に進まないでください。
+`databricks_deploy.log` の末尾が `TERMINATED SUCCESS` なら成功です。
+`smoke_test` の出力に **warehouse_id** が出るので控えてください（B-2 で使います）。
+
+事前に Genie スペースを 1 つ作っておく必要があります。**カタログエクスプローラの
+「次で開く: Genie」ではなく、Genie → 新規 から作ること。** 前者で作ったスペースは
+ワークスペースのツリーに属さず、`04_deploy_genie_agent.py` が
+`Unable to retrieve permissions metadata for dependent genie space ... (tree node ID: )`
+で落ちます。作成したスペース ID を `databricks.yml` と `04_deploy_genie_agent.py`、
+`genie_agent.py` の `GENIE_SPACE_ID` に設定します。
 
 ### B. Salesforce 側
 
@@ -229,23 +253,27 @@ databricks auth login --host https://dbc-c4f38c73-28bc.cloud.databricks.com --pr
 
 ### 使い方
 
-`databricks_deploy.bat` をダブルクリックする。既定で ③ の Genie エージェントを
-デプロイするジョブが走り、結果が `databricks_deploy.log` に出る。
+`databricks_deploy.bat` をダブルクリックする。既定で `deploy_all` が走り、
+一連の資材がまとめてデプロイされて、結果が `databricks_deploy.log` に出る。
 
 ジョブを指定する場合:
 
 ```powershell
-.\databricks_deploy.bat register_uc_functions
+.\databricks_deploy.bat cleanup
 ```
 
 ### 用意してあるジョブ
 
 | ジョブ名 | 内容 |
 |---|---|
-| `deploy_genie_agent` | ③ Genie ラッパーを UC に登録して Model Serving へデプロイ（既定） |
-| `register_uc_functions` | ①②③ が使う UC 関数を登録し直す |
-| `setup_unity_catalog` | ダミーデータを作り直す（通常は流さない） |
-| `smoke_test` | 疎通確認 |
+| `deploy_all` | **既定。** `02 UC 関数 → 04 Genie デプロイ → 03 疎通確認` を順に流す |
+| `deploy_genie_agent` | ③ Genie ラッパーを UC に登録して Model Serving へデプロイ |
+| `register_uc_functions` | ①② が使う UC 関数を登録し直す |
+| `smoke_test` | 疎通確認のみ |
+| `cleanup` | 検証用エンドポイント／モデルを削除し、配信を最新 1 本に絞る |
+| `setup_unity_catalog` | ダミーデータを作り直す（**破壊的。** 初回のみ） |
+
+`deploy_all` に `setup_unity_catalog` を入れていないのは、ダミーデータの作り直しが破壊的だからです。
 
 ### 仕組み
 

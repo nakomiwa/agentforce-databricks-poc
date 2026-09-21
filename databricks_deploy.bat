@@ -3,7 +3,7 @@ setlocal
 set DATABRICKS_CLI_DO_NOT_TRACK=1
 
 set JOB=%1
-if "%JOB%"=="" set JOB=deploy_genie_agent
+if "%JOB%"=="" set JOB=deploy_all
 
 set ROOT=C:\dev\agentforce-databricks-poc
 set LOG=%ROOT%\databricks_deploy.log
