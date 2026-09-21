@@ -78,6 +78,24 @@ try:
 except Exception as e:
     print(f"  {ENDPOINT_NAME}: まだ存在しません（新規作成されます） / {e}")
 
+# cleanup 直後など、エンドポイントが更新中のまま agents.deploy を呼ぶと
+# 設定変更がぶつかる。NOT_UPDATING になるまで待ってから進む。
+try:
+    for _i in range(60):
+        _st = w.serving_endpoints.get(ENDPOINT_NAME).state
+        _upd = _st.config_update.value if _st and _st.config_update else "NOT_UPDATING"
+        if _upd == "NOT_UPDATING":
+            if _i:
+                print(f"  更新の反映を待ちました（{_i * 10} 秒）")
+            break
+        if _i == 0:
+            print(f"  ⏳ config_update={_upd}。反映を待ちます（最大 10 分）")
+        time.sleep(10)
+    else:
+        print("  ⚠ 10 分待っても更新が終わりませんでした。このまま進みます。")
+except Exception:
+    pass
+
 print()
 print("  --- カスタムエンドポイント一覧（枠の消費状況）---")
 try:

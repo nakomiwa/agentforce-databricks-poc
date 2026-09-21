@@ -18,6 +18,7 @@
 #            まず DRY_RUN で中身を確認してから False にすること。
 # =============================================================================
 
+import time
 import traceback
 
 from databricks.sdk import WorkspaceClient
@@ -43,6 +44,10 @@ KEEP_LATEST_ONLY = ["sfdc-genie-agent"]
 
 w = WorkspaceClient()
 tag = "[DRY RUN] " if DRY_RUN else ""
+
+# 何をしたかを記録する。bundle run の Output に出すのはこちら。
+# 「片付け後の状態」だけでは、更新が非同期なので直後は古い値が見える。
+actions = []
 
 print("=" * 72)
 print(f"{tag}STEP 1  現状の棚卸し")
@@ -74,6 +79,7 @@ for name in PROBE_ENDPOINTS:
         continue
     try:
         w.serving_endpoints.delete(name)
+        actions.append(f"エンドポイント削除 {name}")
         print(f"  {name}: 削除しました")
     except Exception:
         traceback.print_exc()
@@ -98,6 +104,7 @@ for full_name in PROBE_MODELS:
         continue
     try:
         w.registered_models.delete(full_name)
+        actions.append(f"モデル削除 {full_name}")
         print(f"  {full_name}: 削除しました")
     except Exception:
         traceback.print_exc()
@@ -155,9 +162,24 @@ for name in KEEP_LATEST_ONLY:
                 routes=[Route(served_model_name=latest.name, traffic_percentage=100)]
             ),
         )
-        print(f"  {name}: 更新を受理しました（反映まで数分かかります）")
+        actions.append(f"{name} を {latest.name} 1本に（外した: {', '.join(drop)}）")
+        print(f"  {name}: 更新を受理しました。反映を待ちます")
+
+        # 受理直後は config がまだ古い値を返す。反映を待たないと
+        # 後続の agents.deploy とぶつかる。
+        for i in range(60):
+            st = w.serving_endpoints.get(name).state
+            upd = st.config_update.value if st and st.config_update else "NOT_UPDATING"
+            if upd == "NOT_UPDATING":
+                print(f"  {name}: 反映完了（{i * 10} 秒）")
+                break
+            time.sleep(10)
+        else:
+            actions.append(f"{name} の反映が 10 分で終わらず")
+            print(f"  {name}: 10 分待っても反映が終わりませんでした")
     except Exception:
         traceback.print_exc()
+        actions.append(f"{name} の更新に失敗")
 
 print()
 print("=" * 72)
@@ -172,4 +194,9 @@ for ep in w.serving_endpoints.list():
     n = len((ep.config.served_entities if ep.config else None) or [])
     after.append(f"{ep.name}(配信{n}本)")
 
-dbutils.notebook.exit(("[DRY RUN] " if DRY_RUN else "") + "残ったエンドポイント: " + (", ".join(after) or "なし"))
+dbutils.notebook.exit(
+    tag
+    + "実施: " + ("; ".join(actions) or "なし（片付け対象なし）")
+    + " || カスタムエンドポイント: "
+    + (", ".join(a for a in after if not a.startswith("databricks-")) or "なし")
+)
