@@ -1,11 +1,14 @@
 # Databricks notebook source
 # =============================================================================
 # 02_register_uc_functions.py
-# ①②③ の API 本体を Unity Catalog の FUNCTION として登録する
+# ①② の API 本体を Unity Catalog の FUNCTION として登録する
 #
 #   ① get_sales_summary_json(region, period) -> JSON 文字列   … LWC 表示用
 #   ② get_sales_report_html(region, period)  -> HTML 文字列   … HTML 表示用
-#   ③ ask_sales_agent(question)              -> 日本語回答     … カスタムエージェント
+#
+# ③ は UC 関数ではなく Genie ベース（04_deploy_genie_agent.py）に移行した。
+# 旧 ③ の ai_query 方式の関数 2 つはここから削除済み。
+# UC 上の実体を消すのは 05_cleanup.py。
 #
 # Salesforce からは SQL Statement Execution API 経由で
 #   SELECT workspace.sfdc_poc.get_sales_summary_json(:p_region, :p_period)
@@ -17,10 +20,6 @@
 CATALOG = "workspace"
 SCHEMA = "sfdc_poc"
 
-# ③ が使う基盤モデルのサービングエンドポイント名。
-# Free Edition では使えるモデルが限られる。03_smoke_test.py で
-# 利用可能なエンドポイント一覧を出力できるので、通らない場合はここを差し替える。
-MODEL_ENDPOINT = "databricks-meta-llama-3-3-70b-instruct"
 
 FQ = f"{CATALOG}.{SCHEMA}"
 spark.sql(f"USE CATALOG {CATALOG}")
@@ -131,69 +130,6 @@ RETURN (
 spark.sql(sql_html)
 print("② get_sales_report_html 登録完了")
 
-# COMMAND ----------
-
-# -----------------------------------------------------------------------------
-# ③-1 エージェントに渡すコンテキスト（地域×四半期の集計テキスト）
-# -----------------------------------------------------------------------------
-sql_ctx = f"""
-CREATE OR REPLACE FUNCTION {FQ}.sales_context()
-RETURNS STRING
-COMMENT '地域×四半期の営業集計をテキスト化して返す（ask_sales_agent が内部で使用）'
-RETURN (
-  SELECT concat_ws('\\n', collect_list(line))
-  FROM (
-    SELECT concat(
-             region, ' | ', fiscal_quarter,
-             ' | 件数 ', cast(count(*) AS STRING),
-             ' | 合計 ', format_number(sum(amount), 0), '円',
-             ' | 受注 ', cast(sum(CASE WHEN is_won THEN 1 ELSE 0 END) AS STRING), '件',
-             ' | 受注率 ', cast(round(avg(CASE WHEN is_won THEN 1.0 ELSE 0.0 END) * 100, 1) AS STRING), '%'
-           ) AS line
-    FROM {FQ}.opportunities
-    GROUP BY region, fiscal_quarter
-    ORDER BY region, fiscal_quarter
-  )
-)
-"""
-spark.sql(sql_ctx)
-print("③-1 sales_context 登録完了")
-
-# COMMAND ----------
-
-# -----------------------------------------------------------------------------
-# ③-2 カスタムエージェント本体
-#   ai_query() で基盤モデルを呼ぶ。failOnError => false なので
-#   モデル側エラー時も STRUCT(result, errorMessage) が返り、SQL は落ちない。
-# -----------------------------------------------------------------------------
-sql_agent = f"""
-CREATE OR REPLACE FUNCTION {FQ}.ask_sales_agent(
-  p_question STRING COMMENT '営業データに関する自然文の質問'
-)
-RETURNS STRING
-COMMENT '営業データを踏まえて質問に日本語で回答するカスタムエージェント'
-RETURN (
-  SELECT coalesce(
-    ai_query(
-      '{MODEL_ENDPOINT}',
-      concat(
-        'あなたは日本企業の営業データ分析アシスタントです。',
-        '以下の集計データだけを根拠にして、必ず日本語で、300文字以内で簡潔に回答してください。',
-        'データから読み取れないことは「データからは判断できません」と答えてください。\\n\\n',
-        '# 営業データ（地域 | 四半期 | 件数 | 合計金額 | 受注件数 | 受注率）\\n',
-        {FQ}.sales_context(), '\\n\\n',
-        '# 質問\\n', p_question, '\\n\\n',
-        '# 回答（日本語）\\n'
-      ),
-      modelParameters => named_struct('max_tokens', 700, 'temperature', 0.2),
-      failOnError => false
-    ).result,
-    'モデルの呼び出しに失敗しました。エンドポイント名を確認してください。'
-  )
-)
-"""
-spark.sql(sql_agent)
-print("③-2 ask_sales_agent 登録完了")
 
 # COMMAND ----------
 

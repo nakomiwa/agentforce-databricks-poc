@@ -82,14 +82,14 @@ salesforce/force-app/main/default/
 │   ├── DatabricksSalesService.cls    ①
 │   ├── DatabricksReportService.cls   ②
 │   ├── DatabricksGenieClient.cls     ③ Model Serving 呼び出し
-│   ├── DatabricksGenieService.cls    ③ Invocable
-│   └── DatabricksAgentService.cls    旧③（ai_query 方式。切り戻し用に残置）
+│   └── DatabricksGenieService.cls    ③ Invocable
 ├── genAiFunctions/                   ①②③ のアクション定義
 ├── lightningTypes/                   c__salesSummaryV2 / c__salesReportHtml
 └── lwc/                              2つのレンダラ
 
 deploy.bat      ダブルクリックでデプロイ（結果は deploy.json）
 retrieve.bat    組織側の実体を取得（結果は retrieve.json）
+destroy.bat     組織から資材を削除（salesforce/destructive/ の定義に従う。結果は destroy.json）
 ```
 
 ---
@@ -270,7 +270,7 @@ databricks auth login --host https://dbc-c4f38c73-28bc.cloud.databricks.com --pr
 | `deploy_genie_agent` | ③ Genie ラッパーを UC に登録して Model Serving へデプロイ |
 | `register_uc_functions` | ①② が使う UC 関数を登録し直す |
 | `smoke_test` | 疎通確認のみ |
-| `cleanup` | 検証用エンドポイント／モデルを削除し、配信を最新 1 本に絞る |
+| `cleanup` | 検証用エンドポイント／モデル／旧関数を削除し、配信を最新 1 本に絞る |
 | `setup_unity_catalog` | ダミーデータを作り直す（**破壊的。** 初回のみ） |
 
 `deploy_all` に `setup_unity_catalog` を入れていないのは、ダミーデータの作り直しが破壊的だからです。

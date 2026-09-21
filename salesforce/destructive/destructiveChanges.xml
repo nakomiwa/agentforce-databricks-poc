@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  旧 ③（ai_query 方式）の削除。
+
+  ③ は Genie ベース（DatabricksGenieService / Ask_Sales_Genie）に移行済みで、
+  DatabricksSalesAgent.agent からは既に参照を外してある。
+
+  GenAiFunction を先に消す。Apex クラスを先に消すと、
+  invocationTarget が解決できなくなって失敗する可能性があるため。
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>Ask_Sales_Agent</members>
+        <name>GenAiFunction</name>
+    </types>
+    <types>
+        <members>DatabricksAgentService</members>
+        <name>ApexClass</name>
+    </types>
+    <version>66.0</version>
+</Package>

@@ -38,6 +38,12 @@ SCHEMA = "sfdc_poc"
 PROBE_ENDPOINTS = ["sfdc-probe-echo"]
 PROBE_MODELS = [f"{CATALOG}.{SCHEMA}.probe_echo"]
 
+# 旧 ③（ai_query 方式）。Genie ベースに移行したので不要
+DROP_FUNCTIONS = [
+    f"{CATALOG}.{SCHEMA}.ask_sales_agent",
+    f"{CATALOG}.{SCHEMA}.sales_context",
+]
+
 # 本番で使うエンドポイント。最新バージョン 1 本だけを残す
 KEEP_LATEST_ONLY = ["sfdc-genie-agent"]
 # ------------------------------------------------------------------------
@@ -105,6 +111,33 @@ for full_name in PROBE_MODELS:
     try:
         w.registered_models.delete(full_name)
         actions.append(f"モデル削除 {full_name}")
+        print(f"  {full_name}: 削除しました")
+    except Exception:
+        traceback.print_exc()
+print()
+
+
+# -----------------------------------------------------------------------
+# STEP 3.5: 使わなくなった UC 関数の削除
+#   02_register_uc_functions.py からは既に外してあるが、UC 上の実体は
+#   CREATE OR REPLACE をやめただけでは消えないので、ここで落とす。
+# -----------------------------------------------------------------------
+print("=" * 72)
+print(f"{tag}STEP 3.5  使わなくなった UC 関数の削除")
+print("=" * 72)
+
+for full_name in DROP_FUNCTIONS:
+    try:
+        w.functions.get(full_name)
+    except Exception:
+        print(f"  {full_name}: 既にありません")
+        continue
+    if DRY_RUN:
+        print(f"  {full_name}: 削除対象")
+        continue
+    try:
+        w.functions.delete(full_name)
+        actions.append(f"関数削除 {full_name.split('.')[-1]}")
         print(f"  {full_name}: 削除しました")
     except Exception:
         traceback.print_exc()
