@@ -39,6 +39,7 @@ public with sharing class DatabricksSummarySpecService {
             String period = String.isBlank(req.period) ? '全期間' : req.period;
             try {
                 res.card = DatabricksRender.fetch('get_sales_summary_spec', region, period);
+                res.card.title = region + ' / ' + period + ' 営業サマリ';
                 res.success = true;
             } catch (Exception e) {
                 res.success = false;

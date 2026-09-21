@@ -33,6 +33,7 @@
 }
 .align-right {
     text-align: right;
+    white-space: nowrap;
 }
 .align-center {
     text-align: center;
